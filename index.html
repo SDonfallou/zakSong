@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+
+    .cube {
+      width: 200px;
+      height: 200px;
+      position: relative;
+      transform-style: preserve-3d;
+      animation: rotateCube 5s linear infinite;
+      cursor: pointer;
+    }
+
+    .face {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border: 5px solid #000;
+    }
+
+    .front  { transform: translateZ(100px); background-color: #00ff00; }
+    .back   { transform: rotateY(180deg) translateZ(100px); background-color: #00ff00; }
+    .left   { transform: rotateY(-90deg) translateZ(100px); background-color: #00ff00; }
+    .right  { transform: rotateY(90deg) translateZ(100px); background-color: #00ff00; }
+    .top    { transform: rotateX(90deg) translateZ(100px); background-color: #00ff00; }
+    .bottom { transform: rotateX(-90deg) translateZ(100px); background-color: #00ff00; }
+
+    @keyframes rotateCube {
+      0%   { transform: rotateX(0) rotateY(0) rotateZ(0); }
+      100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
+    }
+
+    .black-background {
+      background-color: #000 !important;
+    }
+
+    .white-cube {
+      .front, .back, .left, .right, .top, .bottom {
+        background-color: #fff !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="cube" onclick="toggleColorsAndAnimate()">
+    <div class="face front"></div>
+    <div class="face back"></div>
+    <div class="face left"></div>
+    <div class="face right"></div>
+    <div class="face top"></div>
+    <div class="face bottom"></div>
+  </div>
+
+  <audio id="audio" src="beat.mp3"></audio>
+
+  <script>
+    let rotationDirection = 1; // 1 for clockwise, -1 for counterclockwise
+    let audioContext, analyser, dataArray, bufferLength;
+
+    function toggleColorsAndAnimate() {
+      const body = document.body;
+      const cube = document.querySelector('.cube');
+      const audio = document.getElementById('audio');
+
+      body.style.backgroundColor = body.style.backgroundColor === 'rgb(0, 0, 0)' ? '#f0f0f0' : '#000';
+      cube.style.backgroundColor = cube.style.backgroundColor === 'rgb(255, 255, 255)' ? '#00ff00' : '#fff';
+
+      if (audio.paused) {
+        startAudio();
+        animateCube();
+      } else {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    }
+
+    function startAudio() {
+      const audio = document.getElementById('audio');
+      const cube = document.querySelector('.cube');
+      const rotationAngle = 360; // Degrees to rotate per beat
+
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64; // Adjust the fftSize based on your needs
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      bufferLength = analyser.frequencyBinCount;
+
+      const source = audioContext.createMediaElementSource(audio);
+      source.connect(analyser);
+      analyser.connect(audioContext.destination);
+
+      audio.addEventListener('timeupdate', function () {
+        analyser.getByteFrequencyData(dataArray);
+
+        // Check if the bass frequencies are prominent (adjust as needed)
+        if (dataArray[1] > 150) {
+          // Change rotation direction for each beat
+          rotationDirection *= -1;
+
+          // Apply instant rotation to the cube
+          cube.style.transform = `rotateX(${rotationDirection * rotationAngle}deg) rotateY(${rotationDirection * rotationAngle}deg) rotateZ(${rotationDirection * rotationAngle}deg)`;
+        }
+      });
+
+      audio.play();
+    }
+  </script>
+</body>
+</html>
